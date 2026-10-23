@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Lily Encodeur</title>
+<meta name="theme-color" content="#14161a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout : une colonne de travail type poste de réception, étapes empilées, gros boutons au pouce */
+:root{
+  --bg:#f1f2ee; --panel:#ffffff; --fg:#17191c; --muted:#5d636b; --line:#d9dbd4;
+  --accent:#f2b705; --accent-fg:#17191c;
+  --ok:#1f8a4c; --warn:#c06a00; --bad:#c0302a; --info:#2d6cb5;
+  --chip-ok:#e3f3e9; --chip-warn:#fbeedb; --chip-bad:#f8e1df; --chip-info:#e2ecf7;
+  --f-disp:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#121417; --panel:#1b1e22; --fg:#eceee9; --muted:#9aa1a9; --line:#2d3238;
+  --accent:#f5c230; --accent-fg:#17191c;
+  --ok:#4cc27d; --warn:#f0a040; --bad:#f06a62; --info:#6ea6e8;
+  --chip-ok:#173524; --chip-warn:#3a2a12; --chip-bad:#3d1b19; --chip-info:#172c44;
+  color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:16px/1.45 var(--f-body);
+  padding:env(safe-area-inset-top,0) max(16px,env(safe-area-inset-right,0px)) calc(32px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+[hidden]{display:none!important}
+.wrap{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:14px}
+h1{font:700 1.75rem/1 var(--f-disp);letter-spacing:.02em;margin:0;text-transform:uppercase}
+h1 span{background:var(--accent);color:var(--accent-fg);padding:0 .25em;border-radius:3px}
+h2{font:700 1.15rem/1.1 var(--f-disp);letter-spacing:.05em;text-transform:uppercase;margin:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.muted{color:var(--muted);font-size:.92rem}
+button{font:600 1rem var(--f-body);border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:12px 16px;cursor:pointer;min-height:48px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--info);outline-offset:2px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.primary{background:var(--accent);color:var(--accent-fg);border-color:transparent;font:700 1.15rem var(--f-disp);letter-spacing:.06em;text-transform:uppercase}
+.big{width:100%;min-height:58px}
+.stop{background:var(--bad);color:#fff;border-color:transparent;font:700 1.2rem var(--f-disp);letter-spacing:.08em}
+.pill{font:600 .85rem var(--f-body);padding:6px 10px;border-radius:999px;border:1px solid var(--line);white-space:nowrap;min-height:auto}
+.pill.on{background:var(--chip-ok);color:var(--ok);border-color:transparent}
+.pill.off{background:var(--chip-warn);color:var(--warn);border-color:transparent}
+.chip{display:inline-block;font:600 .74rem var(--f-body);letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:4px}
+.c-ean{background:var(--chip-ok);color:var(--ok)} .c-int{background:var(--chip-info);color:var(--info)}
+.c-four{background:var(--chip-warn);color:var(--warn)} .c-man{background:var(--chip-bad);color:var(--bad)}
+.pages{display:flex;flex-direction:column;gap:8px}
+.page{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px}
+.page img{width:52px;height:68px;object-fit:cover;border-radius:4px;flex:none;background:var(--line)}
+.page .info{flex:1;min-width:0}
+.page .t{font-weight:600}
+.page button{min-height:40px;padding:6px 10px;font-size:.88rem}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.stat b{display:block;font:700 1.9rem/1 var(--f-disp);font-variant-numeric:tabular-nums}
+.stat span{font-size:.82rem;color:var(--muted)}
+.alert{border-left:4px solid var(--warn);background:var(--chip-warn);padding:10px 12px;border-radius:6px;font-size:.95rem}
+.alert.bad{border-color:var(--bad);background:var(--chip-bad)}
+.alert.ok{border-color:var(--ok);background:var(--chip-ok)}
+.step{border:2px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.step.active{border-color:var(--accent)}
+.step.done{opacity:.7}
+.step .hint{font:600 1.05rem var(--f-body)}
+.step .hint em{font-style:normal;background:var(--accent);color:var(--accent-fg);padding:0 .3em;border-radius:3px}
+.bar{height:10px;background:var(--line);border-radius:5px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.count{font:700 2.4rem/1 var(--f-disp);font-variant-numeric:tabular-nums;text-align:center}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th{text-align:left;font:600 .75rem var(--f-body);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:6px 6px;border-bottom:1px solid var(--line)}
+td{padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+td.code{font:500 .9rem var(--f-mono);word-break:break-all}
+td.q{font:700 1rem var(--f-mono);text-align:right;white-space:nowrap}
+tr.flag td{background:var(--chip-warn)}
+.desc{color:var(--muted);font-size:.82rem}
+details summary{cursor:pointer;font:700 1rem var(--f-disp);letter-spacing:.05em;text-transform:uppercase;padding:4px 0}
+label{display:flex;flex-direction:column;gap:4px;font-size:.9rem;color:var(--muted)}
+input,select{font:500 1rem var(--f-body);padding:11px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);width:100%}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}.bar i{transition:none}}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;z-index:20;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.overlay .panel{width:100%;max-width:640px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1><span>Lily</span> Encodeur</h1>
+  <button id="btnBle" class="pill off" type="button">Lily non connecté</button>
+</header>
+
+<div id="setupMsg" class="alert" hidden>Colle d'abord ta clé API Claude dans <b>Réglages</b>, en bas de la page.</div>
+<div id="bleMsg" class="alert bad" hidden></div>
+
+<!-- 1. Pages du bon -->
+<section class="panel">
+  <div class="row" style="justify-content:space-between"><h2>1 · Pages du bon</h2><span id="pageCount" class="muted">aucune page</span></div>
+  <div id="pages" class="pages"></div>
+  <input id="file" type="file" accept="image/*" capture="environment" hidden>
+  <button id="btnPhoto" class="primary big" type="button">Photographier la page 1</button>
+  <div id="pageAlerts" class="pages"></div>
+</section>
+
+<!-- 2. Résumé -->
+<section id="secSummary" class="panel" hidden>
+  <h2>2 · Lignes lues</h2>
+  <div class="stats">
+    <div class="stat"><b id="nP1">0</b><span>EAN ou n° interne</span></div>
+    <div class="stat"><b id="nP2">0</b><span>réf. fournisseur</span></div>
+    <div class="stat"><b id="nMan">0</b><span>à faire à la main</span></div>
+  </div>
+</section>
+
+<!-- 3. Frappe -->
+<section id="secType" class="panel" hidden>
+  <h2>3 · Frappe sur le PC</h2>
+  <div id="step1" class="step">
+    <div class="row" style="justify-content:space-between"><b>Passe 1 · EAN / n° interne</b><span id="s1n" class="chip c-ean"></span></div>
+    <div class="hint">Clique dans la colonne <em>N° interne</em> de la 1re ligne, puis appuie sur Envoyer.</div>
+    <button id="btnP1" class="primary big" type="button">Envoyer au Lily</button>
+  </div>
+  <div id="step2" class="step">
+    <div class="row" style="justify-content:space-between"><b>Passe 2 · Réf. fournisseur</b><span id="s2n" class="chip c-four"></span></div>
+    <div class="hint">Clique dans la colonne <em>Réf. fournisseur</em> de la ligne suivante, puis appuie sur Continuer.</div>
+    <button id="btnP2" class="primary big" type="button">Continuer</button>
+  </div>
+  <div id="manualBox" hidden>
+    <div class="alert bad"><b>À saisir à la main :</b> lignes sans code lisible.</div>
+    <div class="tablewrap"><table><thead><tr><th>Désignation</th><th style="text-align:right">Qté</th></tr></thead><tbody id="manualRows"></tbody></table></div>
+  </div>
+  <div id="doneMsg" class="alert ok" hidden></div>
+</section>
+
+<!-- Détail -->
+<section id="secDetail" class="panel" hidden>
+  <details>
+    <summary>Détail des lignes</summary>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Type</th><th>Code tapé</th><th style="text-align:right">Qté</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+  </details>
+  <button id="btnReset" type="button">Nouveau bon (tout effacer)</button>
+</section>
+
+<!-- Réglages -->
+<section class="panel">
+  <details id="settings">
+    <summary>Réglages</summary>
+    <div style="display:flex;flex-direction:column;gap:12px;padding-top:10px">
+      <label for="apiKey">Clé API Claude (reste sur ce téléphone)
+        <input id="apiKey" type="password" autocomplete="off" placeholder="sk-ant-...">
+      </label>
+      <label for="model">Modèle
+        <select id="model">
+          <option value="claude-sonnet-5-5">Sonnet 5.5 (rapide, recommandé)</option>
+          <option value="claude-opus-5-5">Opus 5.5 (plus précis, plus cher)</option>
+        </select>
+      </label>
+      <label for="enterMs">Pause après chaque Entrée (ms)
+        <input id="enterMs" type="number" min="0" max="3000" step="50" value="250">
+      </label>
+      <label for="waitSec">Compte à rebours avant la frappe (s)
+        <input id="waitSec" type="number" min="0" max="15" value="3">
+      </label>
+      <button id="btnSave" type="button">Enregistrer</button>
+      <span id="saveMsg" class="muted"></span>
+    </div>
+  </details>
+</section>
+</div>
+
+<!-- Fenêtre de frappe -->
+<div id="ov" class="overlay" hidden>
+  <div class="panel">
+    <h2 id="ovTitle">Frappe en cours</h2>
+    <div id="ovCount" class="count">–</div>
+    <div class="bar"><i id="ovBar"></i></div>
+    <div id="ovText" class="muted" style="text-align:center"></div>
+    <button id="btnStop" class="stop big" type="button">STOP</button>
+    <button id="btnClose" class="big" type="button" hidden>Fermer</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+// ------------------------------------------------------------------ état
+const S = { pages: [], phase: 0 }; // phase 0: rien tapé, 1: passe 1 faite, 2: tout fait
+let typing = null; // {pass, n, resolve}
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("lily." + k); return v === null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("lily." + k, v); } catch (e) {} }
+};
+
+// ------------------------------------------------------------------ codes
+function eanOk(s) {
+  if (!/^\d{13}$/.test(s)) return false;
+  let sum = 0;
+  for (let i = 0; i < 12; i++) sum += (+s[i]) * (i % 2 ? 3 : 1);
+  return (10 - sum % 10) % 10 === +s[12];
+}
+const digits = v => String(v ?? "").replace(/\D/g, "");
+function cleanQty(q) {
+  let s = String(q ?? "").trim().replace(",", ".").replace(/[^\d.]/g, "");
+  if (s.includes(".")) s = s.replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+  return s;
+}
+// Range une ligne lue : passe 1 (EAN valide, sinon interne 7 chiffres), passe 2 (fournisseur), ou main
+function classify(l) {
+  const ean = digits(l.ean), int = digits(l.interne);
+  const four = String(l.fournisseur ?? "").trim().replace(/;/g, "");
+  const qty = cleanQty(l.qte);
+  const out = { desc: String(l.designation ?? "").trim(), qty, note: "", flag: !!l.doute };
+  if (l.note) out.note = String(l.note);
+  if (!qty) { out.pass = 0; out.note = "quantité illisible"; return out; }
+  if (ean && eanOk(ean)) { out.pass = 1; out.kind = "ean"; out.code = ean; return out; }
+  if (int.length === 7) { out.pass = 1; out.kind = "int"; out.code = int;
+    if (ean) out.note = "EAN invalide, n° interne utilisé"; return out; }
+  if (ean && !int) out.note = "EAN lu mais clé fausse";
+  if (four.length > 23) { out.pass = 0; out.kind = "man"; out.note = "réf. trop longue pour le Lily : " + four; return out; }
+  if (four && /^[\x20-\x7E]+$/.test(four)) { out.pass = 2; out.kind = "four"; out.code = four; return out; }
+  if (four) out.note = "réf. avec caractères spéciaux : " + four;
+  out.pass = 0; out.kind = "man"; return out;
+}
+function allLines() { return S.pages.filter(p => p.status === "ok").flatMap(p => p.lines); }
+
+// ------------------------------------------------------------------ image
+async function prepareImages(file) {
+  const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+  const W = bmp.width, H = bmp.height, MAX = 1568;
+  const crop = (y0, y1) => {
+    const h = y1 - y0, sc = Math.min(1, MAX / Math.max(W, h));
+    const c = document.createElement("canvas");
+    c.width = Math.round(W * sc); c.height = Math.round(h * sc);
+    c.getContext("2d").drawImage(bmp, 0, y0, W, h, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.88).split(",")[1];
+  };
+  const tall = H > W * 1.15 && Math.max(W, H) > MAX * 1.2;
+  const imgs = tall ? [crop(0, Math.round(H * 0.56)), crop(Math.round(H * 0.44), H)] : [crop(0, H)];
+  const tc = document.createElement("canvas"); const ts = 120 / Math.max(W, H);
+  tc.width = Math.round(W * ts); tc.height = Math.round(H * ts);
+  tc.getContext("2d").drawImage(bmp, 0, 0, tc.width, tc.height);
+  return { imgs, thumb: tc.toDataURL("image/jpeg", 0.7) };
+}
+
+// ------------------------------------------------------------------ Claude
+const PROMPT = (n) => `Tu lis une photo de bon de livraison (Lieferschein / bulletin de livraison / bolla) pour un magasin suisse.
+${n > 1 ? "La page est envoyée en 2 images : image 1 = haut de la page, image 2 = bas. Elles se chevauchent : une ligne visible dans les deux ne doit être listée qu'UNE fois.\n" : ""}
+Pour CHAQUE ligne d'article, relève :
+- "ean" : un code EAN à 13 chiffres s'il figure sur la ligne (chiffres seuls, sans espaces), sinon "".
+- "interne" : un numéro d'article du magasin d'EXACTEMENT 7 chiffres s'il figure sur la ligne, sinon "".
+- "fournisseur" : la référence / le numéro d'article du fournisseur, recopié EXACTEMENT comme imprimé (lettres, chiffres, tirets, points, espaces), sinon "". Ne mets pas ici un EAN ni un numéro à 7 chiffres déjà mis ailleurs.
+- "qte" : la quantité LIVRÉE (colonnes du type Liefermenge, geliefert, Menge, Qté livrée). Si la quantité commandée et livrée diffèrent, prends la livrée. Une correction écrite à la main (chiffre barré et réécrit) remplace l'imprimé. Nombre seul, sans unité.
+- "designation" : la désignation courte de l'article.
+- "doute" : true si un chiffre du code ou de la quantité est difficile à lire, sinon false.
+- "note" : remarque très courte si utile (ex. "quantité corrigée à la main"), sinon "".
+Ignore les lignes qui ne sont pas des articles : en-têtes, totaux, frais de port, emballages consignés sans code, numéros de lot, poids.
+Relève aussi "page" : la numérotation de page si elle est imprimée (ex. "Seite 1 von 3" -> "1/3"), sinon "".
+Réponds UNIQUEMENT avec ce JSON, rien d'autre :
+{"page":"1/3","lignes":[{"ean":"","interne":"","fournisseur":"","qte":"","designation":"","doute":false,"note":""}]}`;
+
+async function askClaude(imgs) {
+  const key = store.get("key", "");
+  if (!key) throw new Error("Clé API manquante : ouvre Réglages en bas de la page.");
+  const content = imgs.map(d => ({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: d } }));
+  content.push({ type: "text", text: PROMPT(imgs.length) });
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true" },
+    body: JSON.stringify({ model: store.get("model", "claude-sonnet-5-5"), max_tokens: 16000,
+      messages: [{ role: "user", content }] })
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const m = j?.error?.message || ("erreur " + r.status);
+    if (r.status === 401) throw new Error("Clé API refusée. Vérifie-la dans Réglages.");
+    if (/credit|balance/i.test(m)) throw new Error("Plus de crédit sur le compte API (console.anthropic.com).");
+    throw new Error("Claude : " + m);
+  }
+  const txt = (j.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+  const a = txt.indexOf("{"), b = txt.lastIndexOf("}");
+  if (a < 0 || b < a) throw new Error("Réponse illisible, refais la photo.");
+  const data = JSON.parse(txt.slice(a, b + 1));
+  if (!Array.isArray(data.lignes)) throw new Error("Réponse illisible, refais la photo.");
+  return data;
+}
+
+// ------------------------------------------------------------------ pages
+let replaceIdx = -1;
+$("btnPhoto").onclick = () => { replaceIdx = -1; $("file").click(); };
+$("file").onchange = async (ev) => {
+  const f = ev.target.files[0]; ev.target.value = "";
+  if (!f) return;
+  let page;
+  if (replaceIdx >= 0) { page = S.pages[replaceIdx]; Object.assign(page, { status: "busy", lines: [], err: "", pageNo: "" }); }
+  else { page = { status: "busy", lines: [], err: "", pageNo: "", thumb: "" }; S.pages.push(page); }
+  S.phase = 0; render();
+  try {
+    const { imgs, thumb } = await prepareImages(f);
+    page.thumb = thumb; render();
+    const data = await askClaude(imgs);
+    page.pageNo = String(data.page || "").trim();
+    page.lines = data.lignes.map(classify);
+    page.status = "ok";
+  } catch (e) { page.status = "err"; page.err = e.message || String(e); }
+  render();
+};
+function pageAction(i, act) {
+  if (act === "del") S.pages.splice(i, 1);
+  if (act === "redo") { replaceIdx = i; $("file").click(); return; }
+  S.phase = 0; render();
+}
+
+// ------------------------------------------------------------------ rendu
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const KIND = { ean: ["EAN", "c-ean"], int: ["Interne", "c-int"], four: ["Fourn.", "c-four"], man: ["Main", "c-man"] };
+
+function render() {
+  $("setupMsg").hidden = !!store.get("key", "");
+  // pages
+  $("pages").innerHTML = S.pages.map((p, i) => {
+    let t;
+    if (p.status === "busy") t = `<span class="spin"></span> Lecture en cours…`;
+    else if (p.status === "err") t = `<span style="color:var(--bad)">${esc(p.err)}</span>`;
+    else t = `${p.lines.length} lignes${p.pageNo ? " · page " + esc(p.pageNo) : ""}`;
+    return `<div class="page">${p.thumb ? `<img src="${p.thumb}" alt="">` : `<img alt="">`}
+      <div class="info"><div class="t">Page ${i + 1}</div><div class="muted">${t}</div></div>
+      <button type="button" data-i="${i}" data-a="redo" ${p.status === "busy" ? "disabled" : ""}>Refaire</button>
+      <button type="button" data-i="${i}" data-a="del" ${p.status === "busy" ? "disabled" : ""}>Retirer</button></div>`;
+  }).join("");
+  $("pages").querySelectorAll("button").forEach(b => b.onclick = () => pageAction(+b.dataset.i, b.dataset.a));
+  $("pageCount").textContent = S.pages.length ? S.pages.length + (S.pages.length > 1 ? " pages" : " page") : "aucune page";
+  $("btnPhoto").textContent = S.pages.length ? `+ Ajouter la page ${S.pages.length + 1}` : "Photographier la page 1";
+
+  // alertes de pages
+  const al = [];
+  const ok = S.pages.filter(p => p.status === "ok");
+  const nums = ok.map(p => /^(\d+)\s*\/\s*(\d+)$/.exec(p.pageNo)).filter(Boolean);
+  if (nums.length) {
+    const tot = Math.max(...nums.map(m => +m[2])), have = new Set(nums.map(m => +m[1]));
+    const miss = []; for (let k = 1; k <= tot; k++) if (!have.has(k)) miss.push(k);
+    if (miss.length && !S.pages.some(p => p.status === "busy"))
+      al.push(`<div class="alert">Le bon a ${tot} pages : il manque peut-être la page ${miss.join(", ")}.</div>`);
+  }
+  const sig = ok.map(p => p.lines.map(l => (l.code || "") + "|" + l.qty).sort().join(","));
+  sig.forEach((s, i) => { const j = sig.indexOf(s); if (s && j < i) al.push(`<div class="alert">Les pages ${j + 1} et ${i + 1} ont exactement les mêmes lignes : photo en double ?</div>`); });
+  const codes = {}; allLines().forEach(l => { if (l.code) codes[l.code] = (codes[l.code] || 0) + 1; });
+  const dups = Object.keys(codes).filter(c => codes[c] > 1);
+  if (dups.length && !al.length) al.push(`<div class="alert">Code présent sur plusieurs lignes : ${dups.map(esc).join(", ")}. Normal s'il y a plusieurs lots.</div>`);
+  $("pageAlerts").innerHTML = al.join("");
+
+  // résumé
+  const L = allLines();
+  const p1 = L.filter(l => l.pass === 1), p2 = L.filter(l => l.pass === 2), man = L.filter(l => l.pass === 0);
+  const any = L.length > 0;
+  $("secSummary").hidden = $("secType").hidden = $("secDetail").hidden = !any;
+  $("nP1").textContent = p1.length; $("nP2").textContent = p2.length; $("nMan").textContent = man.length;
+
+  // étapes
+  const busy = S.pages.some(p => p.status === "busy");
+  $("s1n").textContent = p1.length + " lignes"; $("s2n").textContent = p2.length + " lignes";
+  $("step1").hidden = !p1.length; $("step2").hidden = !p2.length;
+  const s1done = S.phase >= 1 || !p1.length, s2done = S.phase >= 2;
+  $("step1").className = "step " + (s1done ? "done" : "active");
+  $("step2").className = "step " + (s2done ? "done" : (s1done ? "active" : ""));
+  $("btnP1").disabled = busy || !ble.ready || !!typing;
+  $("btnP2").disabled = busy || !ble.ready || !!typing || !s1done;
+  $("btnP1").textContent = S.phase >= 1 ? "Renvoyer la passe 1" : "Envoyer au Lily";
+  $("btnP2").textContent = S.phase >= 2 ? "Renvoyer la passe 2" : "Continuer";
+  $("manualBox").hidden = !man.length;
+  $("manualRows").innerHTML = man.map(l => `<tr><td>${esc(l.desc || "(sans désignation)")}${l.note ? `<div class="desc">${esc(l.note)}</div>` : ""}</td><td class="q">${esc(l.qty || "?")}</td></tr>`).join("");
+  const finished = (S.phase >= 2) || (S.phase >= 1 && !p2.length);
+  $("doneMsg").hidden = !finished;
+  $("doneMsg").innerHTML = `<b>Frappe terminée.</b> Vérifie la balance avec la commande, puis valide à la souris.${man.length ? " N'oublie pas les " + man.length + " lignes à la main." : ""}`;
+
+  // détail
+  $("rows").innerHTML = L.map(l => {
+    const k = KIND[l.kind] || KIND.man;
+    return `<tr class="${l.flag || l.note ? "flag" : ""}"><td><span class="chip ${k[1]}">${k[0]}</span></td>
+      <td class="code">${esc(l.code || "—")}<div class="desc">${esc(l.desc)}${l.note ? " · " + esc(l.note) : ""}${l.flag ? " · lecture douteuse" : ""}</div></td>
+      <td class="q">${esc(l.qty || "?")}</td></tr>`;
+  }).join("");
+
+  // bluetooth
+  const bb = $("btnBle");
+  bb.textContent = ble.ready ? "Lily connecté" : (ble.connecting ? "Connexion…" : "Connecter le Lily");
+  bb.className = "pill " + (ble.ready ? "on" : "off");
+}
+
+$("btnReset").onclick = () => { if (typing) return; S.pages = []; S.phase = 0; render(); };
+
+// ------------------------------------------------------------------ Bluetooth
+const SVC = "6e400001-b5a3-f393-e0a9-e50e24dcca9e", RX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e", TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+const ble = { dev: null, rx: null, ready: false, connecting: false, q: Promise.resolve() };
+const enc = new TextEncoder();
+
+function bleErr(msg) { $("bleMsg").textContent = msg; $("bleMsg").hidden = !msg; }
+
+async function bleConnect() {
+  if (!navigator.bluetooth) { bleErr("Ce navigateur ne gère pas le Bluetooth. Ouvre cette page dans Chrome sur Android."); return; }
+  try {
+    ble.connecting = true; render(); bleErr("");
+    if (!ble.dev) {
+      ble.dev = await navigator.bluetooth.requestDevice({ filters: [{ name: "Lily-Encodeur" }], optionalServices: [SVC] });
+      ble.dev.addEventListener("gattserverdisconnected", () => { ble.ready = false; ble.rx = null; render(); if (typing) onLilyMsg("LOST"); });
+    }
+    const srv = await ble.dev.gatt.connect();
+    const svc = await srv.getPrimaryService(SVC);
+    ble.rx = await svc.getCharacteristic(RX);
+    const tx = await svc.getCharacteristic(TX);
+    await tx.startNotifications();
+    tx.addEventListener("characteristicvaluechanged", e => onLilyMsg(new TextDecoder().decode(e.target.value)));
+    ble.ready = true;
+    await bleSend(`E${store.get("enterMs", "250")}\nW${store.get("waitSec", "3")}\n`);
+  } catch (e) {
+    if (e.name !== "NotFoundError") bleErr("Connexion au Lily impossible : " + (e.message || e) + ". Vérifie qu'il est branché, puis réessaie.");
+    ble.ready = false;
+  } finally { ble.connecting = false; render(); }
+}
+$("btnBle").onclick = () => { if (!ble.ready) bleConnect(); };
+
+function bleSend(text) {
+  ble.q = ble.q.then(async () => {
+    if (!ble.rx) throw new Error("Lily non connecté");
+    const b = enc.encode(text);
+    for (let i = 0; i < b.length; i += 180) await ble.rx.writeValueWithResponse(b.slice(i, i + 180));
+  });
+  return ble.q;
+}
+
+// ------------------------------------------------------------------ frappe
+function onLilyMsg(m) {
+  if (!typing) return;
+  let r;
+  if ((r = /^C(\d+)/.exec(m))) { $("ovTitle").textContent = "Clique dans le champ !"; $("ovCount").textContent = r[1]; $("ovText").textContent = "La frappe démarre dans " + r[1] + " s"; }
+  else if ((r = /^P(\d+)\/(\d+)/.exec(m))) {
+    $("ovTitle").textContent = "Frappe en cours"; $("ovCount").textContent = r[1] + " / " + r[2];
+    $("ovBar").style.width = (100 * (+r[1] - 1) / +r[2]) + "%"; $("ovText").textContent = "Ne touche pas au PC";
+  }
+  else if (m.startsWith("DONE")) finishTyping(true, "Terminé");
+  else if (m.startsWith("STOPPED")) finishTyping(false, "Arrêté");
+  else if (m === "LOST") finishTyping(false, "Connexion perdue");
+}
+function finishTyping(ok, title) {
+  if (!typing) return;
+  const t = typing; typing = null;
+  $("ovTitle").textContent = title; $("ovBar").style.width = ok ? "100%" : $("ovBar").style.width;
+  $("ovCount").textContent = ok ? t.n + " / " + t.n : "–";
+  $("ovText").textContent = ok ? t.n + " lignes tapées." : "Plus rien n'est tapé. Tu peux renvoyer la passe depuis le début.";
+  $("btnStop").hidden = true; $("btnClose").hidden = false;
+  if (ok) S.phase = Math.max(S.phase, t.pass);
+  render();
+}
+async function sendPass(pass) {
+  const lines = allLines().filter(l => l.pass === pass);
+  if (!lines.length || typing) return;
+  typing = { pass, n: lines.length };
+  $("ov").hidden = false; $("btnStop").hidden = false; $("btnClose").hidden = true;
+  $("ovTitle").textContent = "Envoi au Lily"; $("ovCount").textContent = "…"; $("ovBar").style.width = "0"; $("ovText").textContent = lines.length + " lignes";
+  render();
+  try {
+    await bleSend("CLR\n" + lines.map(l => `L${l.code};${l.qty}\n`).join("") + "GO\n");
+  } catch (e) { finishTyping(false, "Envoi impossible"); bleErr("Envoi au Lily impossible : " + (e.message || e)); }
+}
+$("btnP1").onclick = () => sendPass(1);
+$("btnP2").onclick = () => sendPass(2);
+$("btnStop").onclick = () => { if (ble.rx) ble.rx.writeValueWithoutResponse(enc.encode("STOP\n")).catch(() => bleSend("STOP\n").catch(() => {})); };
+$("btnClose").onclick = () => { $("ov").hidden = true; };
+
+// ------------------------------------------------------------------ réglages
+$("apiKey").value = store.get("key", "");
+$("model").value = store.get("model", "claude-sonnet-5-5");
+$("enterMs").value = store.get("enterMs", "250");
+$("waitSec").value = store.get("waitSec", "3");
+if (!store.get("key", "")) $("settings").open = true;
+$("btnSave").onclick = async () => {
+  store.set("key", $("apiKey").value.trim());
+  store.set("model", $("model").value);
+  store.set("enterMs", String(Math.max(0, Math.min(3000, +$("enterMs").value || 0))));
+  store.set("waitSec", String(Math.max(0, Math.min(15, +$("waitSec").value || 0))));
+  let msg = "Enregistré.";
+  if (ble.ready) { try { await bleSend(`E${store.get("enterMs")}\nW${store.get("waitSec")}\n`); msg += " Réglages envoyés au Lily."; } catch (e) {} }
+  $("saveMsg").textContent = msg; render();
+};
+
+// garder l'écran allumé pendant le travail
+async function wake() { try { await navigator.wakeLock?.request("screen"); } catch (e) {} }
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") wake(); });
+wake();
+render();
+</script>
+</body>
+</html>
